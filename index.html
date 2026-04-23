@@ -119,6 +119,22 @@
       pointer-events: none;
     }
 
+    #malph-image,
+    #malph-pupil {
+      position: absolute;
+      inset: 0;
+    }
+
+    .malph-pupil {
+      pointer-events: none;
+      transform: translate(0, 0);
+      transition: transform 220ms ease;
+    }
+
+    .malph-pupil.is-hidden {
+      opacity: 0;
+    }
+
     @keyframes hover {
       0%,
       100% {
@@ -145,7 +161,8 @@
 
   <button class="character" id="character" type="button" aria-label="Make the character jump">
     <span class="character-sprite">
-      <img id="malph-image" src="./character-open.png" alt="">
+      <img id="malph-image" src="./character-open-nopupil.png" alt="">
+      <img class="malph-pupil" id="malph-pupil" src="./pupil.png" alt="">
     </span>
   </button>
 
@@ -154,19 +171,54 @@
   <script>
     const character = document.querySelector("#character");
     const malphImage = document.querySelector("#malph-image");
+    const malphPupil = document.querySelector("#malph-pupil");
     const score = document.querySelector("#score");
-    const openImage = "./character-open.png";
+    const openImage = "./character-open-nopupil.png";
     const blinkImage = "./character-blink.png";
     let jumps = 0;
     let blinkTimeoutId;
+    let lookTimeoutId;
+
+    function setPupilOffset(x, y) {
+      malphPupil.style.transform = `translate(${x}px, ${y}px)`;
+    }
+
+    function scheduleLookAround() {
+      const nextLookDelay = randomBetween(900, 2600);
+      const positions = [
+        { x: 0, y: 0 },
+        { x: -2, y: 0 },
+        { x: 2, y: 0 },
+        { x: -1, y: 1 },
+        { x: 1, y: 1 },
+        { x: 0, y: -1 }
+      ];
+
+      lookTimeoutId = window.setTimeout(() => {
+        const nextPosition = positions[Math.floor(Math.random() * positions.length)];
+        setPupilOffset(nextPosition.x, nextPosition.y);
+        scheduleLookAround();
+      }, nextLookDelay);
+    }
+
+    function startBlink() {
+      window.clearTimeout(blinkTimeoutId);
+      malphPupil.classList.add("is-hidden");
+      malphImage.src = blinkImage;
+    }
+
+    function endBlink() {
+      malphImage.src = openImage;
+      malphPupil.classList.remove("is-hidden");
+    }
 
     function scheduleBlink() {
       const nextBlinkDelay = randomBetween(2200, 5200);
       blinkTimeoutId = window.setTimeout(() => {
-        malphImage.src = blinkImage;
+        startBlink();
 
         window.setTimeout(() => {
-          malphImage.src = openImage;
+          endBlink();
           scheduleBlink();
         }, 120);
       }, nextBlinkDelay);
@@ -195,18 +247,22 @@
       jumps += 1;
       score.textContent = jumps;
       window.clearTimeout(blinkTimeoutId);
-      malphImage.src = blinkImage;
+      window.clearTimeout(lookTimeoutId);
+      setPupilOffset(0, 0);
+      startBlink();
       character.style.left = `${next.x}px`;
       character.style.top = `${next.y}px`;
       character.classList.add("is-jumping");
       window.setTimeout(() => {
         character.classList.remove("is-jumping");
-        malphImage.src = openImage;
+        endBlink();
+        scheduleLookAround();
         scheduleBlink();
       }, 180);
     }
 
     character.addEventListener("click", jump);
+    scheduleLookAround();
     scheduleBlink();
   </script>
 </body>
