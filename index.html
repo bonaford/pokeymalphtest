@@ -123,7 +123,9 @@
 
     #malph-image,
     #malph-tail,
-    #malph-pupil {
+    #malph-pupil,
+    #malph-eyebrow-wrap,
+    .malph-eyebrow {
       position: absolute;
       inset: 0;
     }
@@ -138,6 +140,25 @@
 
     #malph-pupil {
       z-index: 2;
+    }
+
+    #malph-eyebrow-wrap {
+      z-index: 3;
+      will-change: transform;
+    }
+
+    #malph-eyebrow-wrap.is-switching {
+      animation: eyebrowNudge 150ms ease-out;
+    }
+
+    .malph-eyebrow {
+      opacity: 0;
+      transition: opacity 90ms ease-out;
+      will-change: opacity;
+    }
+
+    .malph-eyebrow.is-active {
+      opacity: 1;
     }
 
     .malph-pupil {
@@ -180,6 +201,20 @@
       }
     }
 
+    @keyframes eyebrowNudge {
+      0% {
+        transform: translateY(1px) rotate(-1deg);
+      }
+
+      45% {
+        transform: translateY(-2px) rotate(1deg);
+      }
+
+      100% {
+        transform: translateY(0) rotate(0deg);
+      }
+    }
+
     @media (max-width: 520px) {
       .character {
         width: min(27vw, 96px);
@@ -198,6 +233,11 @@
       <img class="malph-tail" id="malph-tail" src="./tail.png" alt="">
       <img id="malph-image" src="./character-open-nopupil.png" alt="">
       <img class="malph-pupil" id="malph-pupil" src="./pupil.png" alt="">
+      <span id="malph-eyebrow-wrap">
+        <img class="malph-eyebrow is-active" id="malph-eyebrow-flat" src="./eyebrow-flat.png" alt="">
+        <img class="malph-eyebrow" id="malph-eyebrow-angled" src="./eyebrow-angled.png" alt="">
+        <img class="malph-eyebrow" id="malph-eyebrow-raised" src="./eyebrow-raised.png" alt="">
+      </span>
     </span>
   </button>
 
@@ -208,12 +248,33 @@
     const malphTail = document.querySelector("#malph-tail");
     const malphImage = document.querySelector("#malph-image");
     const malphPupil = document.querySelector("#malph-pupil");
+    const malphEyebrowWrap = document.querySelector("#malph-eyebrow-wrap");
+    const eyebrowLayers = {
+      flat: document.querySelector("#malph-eyebrow-flat"),
+      angled: document.querySelector("#malph-eyebrow-angled"),
+      raised: document.querySelector("#malph-eyebrow-raised")
+    };
     const score = document.querySelector("#score");
     const openImage = "./character-open-nopupil.png";
     const blinkImage = "./character-blink.png";
     let jumps = 0;
     let blinkTimeoutId;
     let lookTimeoutId;
+    let activeEyebrow = "flat";
+
+    function setEyebrow(state) {
+      if (activeEyebrow === state) {
+        return;
+      }
+
+      Object.entries(eyebrowLayers).forEach(([name, layer]) => {
+        layer.classList.toggle("is-active", name === state);
+      });
+      malphEyebrowWrap.classList.remove("is-switching");
+      void malphEyebrowWrap.offsetWidth;
+      malphEyebrowWrap.classList.add("is-switching");
+      activeEyebrow = state;
+    }
 
     function setPupilOffset(x, y) {
       malphPupil.style.transform = `translate(${x}px, ${y}px)`;
@@ -233,6 +294,7 @@
       lookTimeoutId = window.setTimeout(() => {
         const nextPosition = positions[Math.floor(Math.random() * positions.length)];
         setPupilOffset(nextPosition.x, nextPosition.y);
+        setEyebrow(nextPosition.x === 0 ? "flat" : "angled");
         scheduleLookAround();
       }, nextLookDelay);
     }
@@ -287,6 +349,7 @@
       window.clearTimeout(blinkTimeoutId);
       window.clearTimeout(lookTimeoutId);
       setPupilOffset(0, 0);
+      setEyebrow("raised");
       startBlink();
       character.style.left = `${next.x}px`;
       character.style.top = `${next.y}px`;
@@ -294,6 +357,7 @@
       window.setTimeout(() => {
         character.classList.remove("is-jumping");
         endBlink();
+        setEyebrow("flat");
         scheduleLookAround();
         scheduleBlink();
       }, 180);
