@@ -1,0 +1,538 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pokey Malph</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #202124;
+      --shadow: rgba(32, 33, 36, 0.24);
+      --panel: rgba(255, 255, 255, 0.84);
+      --malph-ratio: 356 / 446;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      overflow: hidden;
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--ink);
+      background: #d8eefb url("./background.png") center center / cover no-repeat;
+      touch-action: manipulation;
+      user-select: none;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(rgba(255, 255, 255, 0.1), rgba(20, 30, 40, 0.18));
+      pointer-events: none;
+    }
+
+    .character {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      width: min(15vw, 112px);
+      height: auto;
+      aspect-ratio: var(--malph-ratio);
+      border: 0;
+      padding: 0;
+      background: transparent;
+      cursor: pointer;
+      transform: translate(-50%, -50%);
+      transition: left 260ms cubic-bezier(.2, .8, .2, 1), top 260ms cubic-bezier(.2, .8, .2, 1);
+      filter: drop-shadow(0 12px 10px var(--shadow));
+      -webkit-tap-highlight-color: transparent;
+      z-index: 1;
+      will-change: left, top;
+    }
+
+    .character:focus-visible {
+      outline: 4px solid #118ab2;
+      outline-offset: 8px;
+      border-radius: 16px;
+    }
+
+    .character-sprite {
+      position: relative;
+      display: block;
+      width: 100%;
+      height: 100%;
+      animation: hover 2.2s ease-in-out infinite;
+      transform-origin: center bottom;
+      transition: transform 180ms ease;
+      will-change: transform;
+    }
+
+    .character.is-jumping .character-sprite {
+      transform: translateY(-8px) scale(1.08) rotate(-4deg);
+    }
+
+    .character img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      pointer-events: none;
+    }
+
+    #malph-image,
+    #malph-tail,
+    #malph-pupil,
+    #malph-mouth,
+    #malph-bored-lid,
+    #malph-happy-lid,
+    #malph-eyebrow-wrap,
+    .malph-eyebrow {
+      position: absolute;
+      inset: 0;
+    }
+
+    #malph-tail {
+      z-index: 0;
+    }
+
+    #malph-image {
+      z-index: 1;
+    }
+
+    #malph-pupil {
+      z-index: 2;
+    }
+
+    #malph-mouth {
+      z-index: 2;
+      opacity: 0;
+      transition: opacity 320ms ease-in-out;
+      will-change: opacity;
+    }
+
+    #malph-mouth.is-visible {
+      opacity: 1;
+    }
+
+    #malph-bored-lid {
+      z-index: 2;
+      opacity: 0;
+      transition: opacity 120ms ease-out;
+      will-change: opacity;
+    }
+
+    #malph-bored-lid.is-active {
+      opacity: 1;
+    }
+
+    #malph-happy-lid {
+      z-index: 2;
+      opacity: 0;
+      transition: opacity 120ms ease-out;
+      will-change: opacity;
+    }
+
+    #malph-happy-lid.is-active {
+      opacity: 1;
+    }
+
+    #malph-bored-lid.is-squint {
+      opacity: 1;
+      transition: none;
+    }
+
+    #malph-happy-lid.is-squint {
+      opacity: 1;
+      transition: none;
+    }
+
+    #malph-eyebrow-wrap {
+      z-index: 3;
+      will-change: transform;
+    }
+
+    #malph-eyebrow-wrap.is-switching {
+      animation: eyebrowNudge 150ms ease-out;
+    }
+
+    .malph-eyebrow {
+      opacity: 0;
+      transition: opacity 90ms ease-out;
+      will-change: opacity;
+    }
+
+    .malph-eyebrow.is-active {
+      opacity: 1;
+    }
+
+    .malph-pupil {
+      pointer-events: none;
+      transform: translate(
+        calc(var(--pupil-base-x, 0px) + var(--pupil-look-x, 0px)),
+        calc(var(--pupil-base-y, 0px) + var(--pupil-look-y, 0px))
+      );
+      transition: transform 220ms ease;
+      will-change: transform;
+    }
+
+    .malph-pupil.is-hidden {
+      opacity: 0;
+    }
+
+    .malph-tail {
+      pointer-events: none;
+      transform-origin: 56% 62%;
+      animation: tailBreathe 6.4s ease-in-out infinite;
+      will-change: transform;
+    }
+
+    @keyframes hover {
+      0%,
+      100% {
+        transform: translateY(0);
+      }
+
+      50% {
+        transform: translateY(-10px);
+      }
+    }
+
+    @keyframes tailBreathe {
+      0%,
+      100% {
+        transform: translateX(-1px) translateY(1px) rotate(-5deg);
+      }
+
+      50% {
+        transform: translateX(1px) translateY(-1px) rotate(1deg);
+      }
+    }
+
+    @keyframes eyebrowNudge {
+      0% {
+        transform: translateY(0.5px) rotate(-0.4deg);
+      }
+
+      45% {
+        transform: translateY(-1px) rotate(0.4deg);
+      }
+
+      100% {
+        transform: translateY(0) rotate(0deg);
+      }
+    }
+
+    @media (max-width: 520px) {
+      .character {
+        width: min(27vw, 96px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <button class="character" id="character" type="button" aria-label="Make the character jump">
+    <span class="character-sprite">
+      <img class="malph-tail" id="malph-tail" src="./tail.png" alt="">
+      <img id="malph-image" src="./character-open-nopupil.png" alt="">
+      <img class="malph-pupil" id="malph-pupil" src="./pupil.png" alt="">
+      <img id="malph-mouth" src="./mouth.png" alt="">
+      <img id="malph-bored-lid" src="./bored-lid.png" alt="">
+      <img id="malph-happy-lid" src="./happy-lid.png" alt="">
+      <span id="malph-eyebrow-wrap">
+        <img class="malph-eyebrow is-active" id="malph-eyebrow-flat" src="./eyebrow-flat.png" alt="">
+        <img class="malph-eyebrow" id="malph-eyebrow-angled" src="./eyebrow-angled.png" alt="">
+        <img class="malph-eyebrow" id="malph-eyebrow-raised" src="./eyebrow-raised.png" alt="">
+      </span>
+    </span>
+  </button>
+
+  <script>
+    const character = document.querySelector("#character");
+    const malphTail = document.querySelector("#malph-tail");
+    const malphImage = document.querySelector("#malph-image");
+    const malphPupil = document.querySelector("#malph-pupil");
+    const malphMouth = document.querySelector("#malph-mouth");
+    const malphBoredLid = document.querySelector("#malph-bored-lid");
+    const malphHappyLid = document.querySelector("#malph-happy-lid");
+    const malphEyebrowWrap = document.querySelector("#malph-eyebrow-wrap");
+    const eyebrowLayers = {
+      flat: document.querySelector("#malph-eyebrow-flat"),
+      angled: document.querySelector("#malph-eyebrow-angled"),
+      raised: document.querySelector("#malph-eyebrow-raised")
+    };
+    const openImage = "./character-open-nopupil.png";
+    const blinkImage = "./character-blink.png";
+    let blinkTimeoutId;
+    let lookTimeoutId;
+    let moodTimeoutId;
+    let moodResetTimeoutId;
+    let squintTimeoutId;
+    let mouthTimeoutId;
+    let mouthHideTimeoutId;
+    let activeEyebrow = "flat";
+    let faceMode = "open";
+
+    function setEyebrow(state) {
+      if (activeEyebrow === state) {
+        return;
+      }
+
+      Object.entries(eyebrowLayers).forEach(([name, layer]) => {
+        layer.classList.toggle("is-active", name === state);
+      });
+      malphEyebrowWrap.classList.remove("is-switching");
+      void malphEyebrowWrap.offsetWidth;
+      malphEyebrowWrap.classList.add("is-switching");
+      activeEyebrow = state;
+    }
+
+    function setPupilOffset(x, y) {
+      malphPupil.style.setProperty("--pupil-look-x", `${x}px`);
+      malphPupil.style.setProperty("--pupil-look-y", `${y}px`);
+    }
+
+    function setFaceMode(mode) {
+      faceMode = mode;
+      malphBoredLid.classList.remove("is-active");
+      malphBoredLid.classList.remove("is-squint");
+      malphHappyLid.classList.remove("is-active");
+      malphHappyLid.classList.remove("is-squint");
+
+      if (mode === "blink") {
+        malphImage.src = blinkImage;
+        malphPupil.classList.add("is-hidden");
+        return;
+      }
+
+      if (mode === "bored") {
+        malphImage.src = openImage;
+        malphBoredLid.classList.add("is-active");
+        malphPupil.style.setProperty("--pupil-base-x", "0px");
+        malphPupil.style.setProperty("--pupil-base-y", "0px");
+        malphPupil.classList.remove("is-hidden");
+        return;
+      }
+
+      if (mode === "happy") {
+        malphImage.src = openImage;
+        malphHappyLid.classList.add("is-active");
+        malphPupil.style.setProperty("--pupil-base-x", "0px");
+        malphPupil.style.setProperty("--pupil-base-y", "0px");
+        malphPupil.classList.remove("is-hidden");
+        return;
+      }
+
+      malphImage.src = openImage;
+      malphPupil.style.setProperty("--pupil-base-x", "0px");
+      malphPupil.style.setProperty("--pupil-base-y", "0px");
+      malphPupil.classList.remove("is-hidden");
+    }
+
+    function setSquint(active) {
+      malphBoredLid.classList.toggle("is-squint", active);
+      malphHappyLid.classList.toggle("is-squint", active);
+    }
+
+    function clearMoodTimers() {
+      window.clearTimeout(moodTimeoutId);
+      window.clearTimeout(moodResetTimeoutId);
+      window.clearTimeout(squintTimeoutId);
+    }
+
+    function clearLookTimers() {
+      window.clearTimeout(lookTimeoutId);
+    }
+
+    function clearBlinkTimers() {
+      window.clearTimeout(blinkTimeoutId);
+    }
+
+    function showMouth(duration = 1400) {
+      window.clearTimeout(mouthTimeoutId);
+      window.clearTimeout(mouthHideTimeoutId);
+      malphMouth.classList.add("is-visible");
+      mouthHideTimeoutId = window.setTimeout(() => {
+        malphMouth.classList.remove("is-visible");
+      }, duration);
+    }
+
+    function scheduleMouthPeek() {
+      window.clearTimeout(mouthTimeoutId);
+      const nextPeekDelay = randomBetween(22000, 36000);
+
+      mouthTimeoutId = window.setTimeout(() => {
+        if (faceMode === "blink") {
+          scheduleMouthPeek();
+          return;
+        }
+
+        if (Math.random() < 0.25) {
+          showMouth(randomBetween(900, 1800));
+        }
+
+        scheduleMouthPeek();
+      }, nextPeekDelay);
+    }
+
+    function scheduleIdleMood() {
+      clearMoodTimers();
+      const nextMoodDelay = randomBetween(14000, 26000);
+
+      moodTimeoutId = window.setTimeout(() => {
+        if (faceMode !== "open") {
+          scheduleIdleMood();
+          return;
+        }
+
+        const mood = Math.random() < 0.4 ? "happy" : "bored";
+        setFaceMode(mood);
+        setEyebrow(mood === "happy" ? "raised" : "flat");
+        setPupilOffset(mood === "happy" ? 0 : (Math.random() < 0.5 ? -2 : 2), 0);
+        if ((mood === "happy" && Math.random() < 0.45) || (mood === "bored" && Math.random() < 0.18)) {
+          showMouth(5000);
+        }
+
+        moodResetTimeoutId = window.setTimeout(() => {
+          setFaceMode("open");
+          setEyebrow("flat");
+          setPupilOffset(0, 0);
+          scheduleLookAround();
+          scheduleBlink();
+          scheduleIdleMood();
+        }, mood === "happy" ? 5000 : 10000);
+      }, nextMoodDelay);
+    }
+
+    function scheduleLookAround() {
+      clearLookTimers();
+      const nextLookDelay = randomBetween(1400, 3200);
+      const positions = [
+        { x: 0, y: 0 },
+        { x: -2, y: 0 },
+        { x: 2, y: 0 },
+        { x: -1, y: 1 },
+        { x: 1, y: 1 },
+        { x: 0, y: -1 }
+      ];
+
+      lookTimeoutId = window.setTimeout(() => {
+        if (faceMode !== "open") {
+          scheduleLookAround();
+          return;
+        }
+
+        const nextPosition = positions[Math.floor(Math.random() * positions.length)];
+        setPupilOffset(nextPosition.x, nextPosition.y);
+        const shouldAngle = Math.abs(nextPosition.x) >= 2 && Math.random() < 0.35;
+        setEyebrow(shouldAngle ? "angled" : "flat");
+        scheduleLookAround();
+      }, nextLookDelay);
+    }
+
+    function startBlink() {
+      clearBlinkTimers();
+      setFaceMode("blink");
+      malphTail.src = "./tail.png";
+    }
+
+    function endBlink() {
+      setFaceMode("open");
+      malphTail.src = "./tail.png";
+    }
+
+    function scheduleBlink() {
+      clearBlinkTimers();
+      const nextBlinkDelay = randomBetween(2200, 5200);
+      blinkTimeoutId = window.setTimeout(() => {
+        if (faceMode !== "open") {
+          scheduleBlink();
+          return;
+        }
+
+        startBlink();
+
+        window.setTimeout(() => {
+          endBlink();
+          scheduleBlink();
+        }, 120);
+      }, nextBlinkDelay);
+    }
+
+    function randomPosition() {
+      const rect = character.getBoundingClientRect();
+      const padding = 18;
+      const minX = rect.width / 2 + padding;
+      const maxX = window.innerWidth - rect.width / 2 - padding;
+      const minY = rect.height / 2 + padding;
+      const maxY = window.innerHeight - rect.height / 2 - padding;
+
+      return {
+        x: randomBetween(minX, Math.max(minX, maxX)),
+        y: randomBetween(minY, Math.max(minY, maxY))
+      };
+    }
+
+    function randomBetween(min, max) {
+      return Math.random() * (max - min) + min;
+    }
+
+    function jump() {
+      const next = randomPosition();
+      clearBlinkTimers();
+      clearLookTimers();
+      clearMoodTimers();
+      if (faceMode === "bored") {
+        setFaceMode("open");
+      }
+      setPupilOffset(0, 0);
+      setEyebrow("raised");
+      startBlink();
+      character.style.left = `${next.x}px`;
+      character.style.top = `${next.y}px`;
+      character.classList.add("is-jumping");
+      window.setTimeout(() => {
+        character.classList.remove("is-jumping");
+        setFaceMode("open");
+        setSquint(true);
+        const showHappy = Math.random() < 0.3;
+        setEyebrow(showHappy ? "raised" : "flat");
+        if (showHappy && Math.random() < 0.4) {
+          showMouth(5000);
+        }
+        squintTimeoutId = window.setTimeout(() => {
+          setSquint(false);
+          if (showHappy) {
+            setFaceMode("happy");
+            scheduleLookAround();
+            scheduleBlink();
+            moodResetTimeoutId = window.setTimeout(() => {
+              setFaceMode("open");
+              setEyebrow("flat");
+              scheduleLookAround();
+              scheduleBlink();
+              scheduleIdleMood();
+            }, 5000);
+          } else {
+            endBlink();
+            setEyebrow("flat");
+            scheduleLookAround();
+            scheduleBlink();
+            scheduleIdleMood();
+          }
+        }, 220);
+      }, 180);
+    }
+
+    character.addEventListener("click", jump);
+    scheduleLookAround();
+    scheduleBlink();
+    scheduleIdleMood();
+    scheduleMouthPeek();
+  </script>
+</body>
+</html>
